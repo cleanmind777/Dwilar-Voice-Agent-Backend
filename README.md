@@ -23,10 +23,22 @@ This is the backend for the Livekit-voice project. It provides an AI-powered rea
 4. **Set up environment variables**
    Create a `.env` file in the backend directory with the following variables:
    ```env
-   OPENAI_API_KEY=your_openai_api_key
-   PINECONE_API_KEY=your_pinecone_api_key
-   PINECONE_ENV=your_pinecone_env
-   PINECONE_INDEX_NAME=your_pinecone_index_name
+    DEEPGRAM_API_KEY=your-deepgram-api-key
+
+    OPENAI_API_KEY=your-openai-api-key
+
+    LIVEKIT_URL=your-livekit-url
+    LIVEKIT_API_KEY=your-livekit-api-key
+    LIVEKIT_API_SECRET=your-livekit-api-secret
+
+    AWS_ACCESS_KEY_ID=your-aws-access-key-id
+    AWS_SECRET_ACCESS_KEY=your-secret-access-key
+    AWS_REGION=your-aws-region
+
+    PINECONE_API_KEY=your-pinecone-api-key
+    PINECONE_ENV=your-pinecone-env
+    PINECONE_INDEX_NAME=your-pinecone-index-name
+
    # Add any other required keys (e.g., AWS for TTS)
    ```
 
