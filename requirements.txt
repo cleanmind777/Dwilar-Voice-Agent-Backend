@@ -1,0 +1,15 @@
+# Core dependencies
+python-dotenv
+openai
+pinecone-client
+livekit-agents
+# If you use AWS TTS
+boto3
+# If you use Deepgram
+requests
+# If you use Silero VAD (may require torch)
+torch
+# For logging and utilities
+loguru
+# For fast JSON parsing (optional)
+ujson 
