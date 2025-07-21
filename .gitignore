@@ -98,7 +98,7 @@ poetry.lock
 .env
 
 # Config folder
-config/
+config/*
 
 # Virtual environment
 .venv/
