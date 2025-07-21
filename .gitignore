@@ -97,6 +97,8 @@ poetry.lock
 # Environment variables
 .env
 
+# Config folder
+config/*
 
 # Virtual environment
 .venv/
@@ -107,3 +109,6 @@ venv/
 
 # Mac
 .DS_Store 
+
+# Data
+data.json
