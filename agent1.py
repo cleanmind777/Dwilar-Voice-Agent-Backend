@@ -8,7 +8,7 @@ from pinecone import Pinecone, ServerlessSpec
 import asyncio
 from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions, ChatContext, function_tool
-from livekit.plugins import deepgram, silero, aws, openai, noise_cancellation, elevenlabs, google
+from livekit.plugins import deepgram, silero, aws, openai, noise_cancellation, elevenlabs
 # from livekit.plugins.turn_detector.english import EnglishModel  # Disabled due to timeout issues
 from prompt import SYSTEM_PROMPT
 
@@ -35,17 +35,12 @@ def get_embedding(text: str) -> list:
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(instructions=SYSTEM_PROMPT)
-        self.current_language = "en"
+        self.current_language = "en"  # Default to Japanese
         self.language_names = {"en": "English", "ja": "Japanese"}
         self.greetings = {
-            "en": "Hello! I'm now speaking in English.",
-            "ja": "こんにちは！今、日本語で話しています。"
+            "en": "Hello! I'm now speaking in English. How can I help you today?",
+            "ja": "こんにちは！今、日本語で話しています。今日はどのようにお手伝いできますか？"
         }
-
-    @function_tool()
-    async def get_language(self):
-        logging.debug(f"[get_language] Current language is: {self.current_language}")
-        return self.current_language
 
     @function_tool()
     async def search_real_estate(self, location: str, price: str, bedrooms: str, top_k: int = 3):
@@ -82,13 +77,15 @@ class Assistant(Agent):
         # Update chat context for language-specific instructions
         if language_code == "ja":
             self._session.stt.update_options(model="nova-2", language="ja")
-            self._session.tts.update_options(gender="female", voice_name="ja-JP-Chirp3-HD-Algenib")
+            # self._session.tts = aws.TTS(language="ja-JP", voice="Mizuki", speech_engine="standard", region="us-east-1")
+            self._session.tts = aws.TTS(language="ja-JP", voice="Mizuki", speech_engine="standard", region="us-east-1")
             self._session.chat_ctx = ChatContext([
                 {"role": "system", "text": "あなたは親切なアシスタントです。常に日本語で応答してください。"}
             ])
         if language_code == "en":
             self._session.stt.update_options(model="nova-2", language="en")
-            self._session.tts.update_options(gender="male", voice_name="en-US-Chirp-HD-D")
+            self._session.tts.update_options(model="aura-asteria-en")
+            # self._session.tts = aws.TTS(language="en-US", voice="Joanna", speech_engine="neural", region="us-east-1")
             self._session.chat_ctx = ChatContext([
                 {"role": "system", "text": "You are a helpful assistant. Always respond in English."}
             ])
@@ -100,14 +97,14 @@ class Assistant(Agent):
         session = AgentSession(
             stt=deepgram.STT(model="nova-2", language="en"),  # Multi-language detection
             llm=openai.LLM(model="gpt-4o-mini", temperature=0.3),
-            tts=google.TTS(gender="male", voice_name="en-US-Chirp-HD-D"),
+            tts=deepgram.TTS(model="aura-asteria-en"),
             vad=silero.VAD.load(activation_threshold=0.7),
             # turn_detection=EnglishModel(),  # Disabled due to timeout issues
         )
 
         await session.start(
             room=ctx.room,
-            agent=self,
+            agent=Assistant(),
             room_input_options=RoomInputOptions(
                 noise_cancellation=noise_cancellation.BVC(), 
             ),
