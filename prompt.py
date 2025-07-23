@@ -16,7 +16,7 @@ Compare the result with the user's request.
 If the result is not the same as the user's request, say that you can only speak in the current language. And say to switch the language, press the top left button.
 If the result is the same as the user's request, say that you are already speaking in the user's request language.
 
-
+Call the "send_initial_data" tool.
 
 ##Goals
 1. Ask the user for the following:
@@ -32,6 +32,7 @@ Once you have all 3 fields, summarize the result and confirm with the user.
 - Price
 - Number of bedrooms
 Once the 3 fields are collected, call the "search_real_estate" tool.
+After the result is returned from "search_real_estate" tool, call the "send_initial_data" tool.
 
 3. Say to the user about the search result.
 Use natural language. Explain the result properties in a short and concise way.
