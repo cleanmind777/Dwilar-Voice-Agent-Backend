@@ -58,6 +58,12 @@ class Assistant(Agent):
         return self.current_language
 
     @function_tool()
+    async def initial_greeting(self):
+        """Provide initial greeting and introduction"""
+        greeting = f"Hello! I'm your real estate agent from Dwilar Company. I'm here to help you find your perfect property. Before we begin, I'd like to ask for your consent to collect some information to better assist you with your property search. Is that okay with you?"
+        return greeting
+
+    @function_tool()
     async def search_real_estate(self, location: str, price: str, bedrooms: str, context: RunContext, top_k: int = 3):
         # Build your query vector from the input (use your embedding logic)
         query = f"{bedrooms} bedroom property in {location} priced around {price}"
@@ -310,13 +316,13 @@ class Assistant(Agent):
         # Update chat context for language-specific instructions
         if language_code == "ja":
             self._session.stt.update_options(model="nova-2", language="ja")
-            self._session.tts.update_options(gender="female", voice_name="ja-JP-Chirp3-HD-Algenib")
+            self._session.tts.update_options(gender="female", voice_name="ja-JP-Chirp3-HD-Achernar")
             self._session.chat_ctx = ChatContext([
                 {"role": "system", "text": "あなたは親切なアシスタントです。常に日本語で応答してください。"}
             ])
         if language_code == "en":
             self._session.stt.update_options(model="nova-2", language="en")
-            self._session.tts.update_options(gender="male", voice_name="en-US-Chirp-HD-D")
+            self._session.tts.update_options(gender="male", voice_name="en-US-Chirp-HD-F")
             self._session.chat_ctx = ChatContext([
                 {"role": "system", "text": "You are a helpful assistant. Always respond in English."}
             ])
@@ -328,7 +334,7 @@ class Assistant(Agent):
         session = AgentSession(
             stt=deepgram.STT(model="nova-2", language="en"),  # Multi-language detection
             llm=openai.LLM(model="gpt-4o-mini", temperature=0.3),
-            tts=google.TTS(gender="male", voice_name="en-US-Chirp-HD-D"),
+            tts=google.TTS(gender="male", voice_name="en-US-Chirp-HD-F"),
             vad=silero.VAD.load(activation_threshold=0.7),
             # turn_detection=EnglishModel(),  # Disabled due to timeout issues
         )
@@ -343,6 +349,30 @@ class Assistant(Agent):
 
         # Store session reference for language switching
         self._session = session
+        
+        # Check initial language from participant attributes
+        initial_language = "en"  # default
+        logging.info(f"Checking participant attributes for language...")
+        for participant in ctx.room.remote_participants.values():
+            logging.info(f"Participant {participant.identity} attributes: {participant.attributes}")
+            if participant.attributes and "language" in participant.attributes:
+                initial_language = participant.attributes.get("language", "en")
+                logging.info(f"Found language attribute: {initial_language}")
+                break
+        logging.info(f"Using initial language: {initial_language}")
+        
+        # Set initial language
+        if initial_language == "ja":
+            self.current_language = "ja"
+            self._session.stt.update_options(model="nova-2", language="ja")
+            self._session.tts.update_options(gender="female", voice_name="ja-JP-Chirp3-HD-Achernar")
+            self._session.chat_ctx = ChatContext([
+                {"role": "system", "text": "あなたは親切なアシスタントです。常に日本語で応答してください。"}
+            ])
+            await self._session.say("こんにちは!私はDwilar Companyの不動産エージェントです。あなたの理想的な物件を見つけるお手伝いをします。まず、物件検索をより良くサポートするために、いくつかの情報を収集する許可をいただけますか？")
+        else:
+            self.current_language = "en"
+            await self._session.say("Hello! I'm your real estate agent from Dwilar Company. I'm here to help you find your perfect property. Before we begin, I'd like to ask for your consent to collect some information to better assist you with your property search. Is that okay with you?")
         
         # Register RPC method to receive contact info from frontend
         @ctx.room.local_participant.on("rpc_request")
@@ -360,16 +390,20 @@ class Assistant(Agent):
             return None
         
         await ctx.connect()
+        
+        # Make the agent speak first with a proper greeting
         await session.generate_reply(
-            instructions="Say first",
+            instructions="Start the conversation immediately by greeting the user and introducing yourself as a real estate agent from Dwilar Company. Ask for their consent to collect data and then begin asking about their property search needs. Be proactive and initiate the conversation.",
             allow_interruptions=False,
         )
 
         # Set up participant attribute change listener
         @ctx.room.on("participant_attributes_changed")
         def on_participant_attributes_changed(changed_attributes, participant):
+            logging.info(f"Participant attributes changed: {changed_attributes} for {participant.identity}")
             if "language" in changed_attributes:
                 language_code = participant.attributes.get("language")
+                logging.info(f"Language changed to: {language_code}")
                 if language_code in ["en", "ja"]:
                     asyncio.create_task(self._switch_language(language_code))
 
